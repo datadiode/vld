@@ -2,9 +2,9 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Visual Leak Detector"
-#define MyAppVersion "2.7.0"
+#define MyAppVersion "2.8.0"
 #define MyAppPublisher "VLD Team"
-#define MyAppURL "http://vld.codeplex.com/"
+#define MyAppURL "https://github.com/oneiric/vld"
 #define MyAppRegKey "Software\Visual Leak Detector"
 
 [Setup]
@@ -25,7 +25,7 @@ LicenseFile=license-free.txt
 OutputBaseFilename=vld-{#MyAppVersion}-setup
 Compression=lzma
 SolidCompression=True
-MinVersion=0,6.0
+MinVersion=0,6.1
 ; Tell Windows Explorer to reload the environment
 ChangesEnvironment=yes
 AllowNoIcons=yes
@@ -45,12 +45,12 @@ Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\bin\Win64"; Flags: ignorevers
 Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
 Source: "dbghelp\x86\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\src\bin\Win32\Release-v142\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
-Source: "..\src\bin\Win32\Release-v142\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\src\bin\Win32\Release-v142\vld_x86.pdb"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
-Source: "..\src\bin\x64\Release-v142\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
-Source: "..\src\bin\x64\Release-v142\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
-Source: "..\src\bin\x64\Release-v142\vld_x64.pdb"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release-v143\vld.lib"; DestDir: "{app}\lib\Win32"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release-v143\vld_x86.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "..\src\bin\Win32\Release-v143\vld_x86.pdb"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release-v143\vld.lib"; DestDir: "{app}\lib\Win64"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release-v143\vld_x64.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "..\src\bin\x64\Release-v143\vld_x64.pdb"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "..\src\vld.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\src\vld_def.h"; DestDir: "{app}\include"; Flags: ignoreversion
 Source: "..\vld.ini"; DestDir: "{app}"; Flags: ignoreversion
@@ -61,7 +61,7 @@ Source: "..\COPYING.txt"; DestDir: "{app}"; Flags: ignoreversion
 [Tasks]
 Name: "modifypath"; Description: "Add VLD directory to your environmental path"
 Name: "modifyVS2008Props"; Description: "Add VLD directory to VS 2008"
-Name: "modifyVS2010Props"; Description: "Add VLD directory to VS 2010 - VS 2019"
+Name: "modifyVS2010Props"; Description: "Add VLD directory to VS 2010 - VS 2022"
 
 [ThirdParty]
 UseRelativePaths=True
@@ -318,12 +318,28 @@ var
   StaticLibraryDirectoriesNode: Variant;
   AdditionalStaticLibraryDirectories: string;
 begin
-  if not FileExists(filename) then
-    Exit;
   XMLDocument := CreateOleObject('Msxml2.DOMDocument.3.0');
   try
     XMLDocument.async := False;
-    XMLDocument.load(filename);
+    XMLDocument.preserveWhiteSpace := True;
+    if FileExists(filename) then
+      XMLDocument.load(filename)
+    else
+      XMLDocument.loadXML(
+        '<?xml version="1.0" encoding="utf-8"?>'#13#10
+        '<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">'#13#10
+        '  <ItemDefinitionGroup>'#13#10
+        '    <ClCompile>'#13#10
+        '      <AdditionalIncludeDirectories></AdditionalIncludeDirectories>'#13#10
+        '    </ClCompile>'#13#10
+        '    <Link>'#13#10
+        '      <AdditionalLibraryDirectories></AdditionalLibraryDirectories>'#13#10
+        '    </Link>'#13#10
+        '    <Lib>'#13#10
+        '      <AdditionalLibraryDirectories></AdditionalLibraryDirectories>'#13#10
+        '    </Lib>'#13#10
+        '  </ItemDefinitionGroup>'#13#10
+        '</Project>'#13#10);
     if (XMLDocument.parseError.errorCode = 0) then
     begin
       XMLDocument.setProperty('SelectionLanguage', 'XPath');
@@ -426,7 +442,7 @@ var
   Path: string;
 begin
   Path := GetEnv('LOCALAPPDATA')+'\Microsoft\MSBuild\v4.0\';
-  if DirExists(Path) then
+  if ForceDirectories(Path) then
   begin
     ModifyProps(Path + 'Microsoft.Cpp.Win32.user.props', 'Win32');
     ModifyProps(Path + 'Microsoft.Cpp.x64.user.props', 'Win64');
