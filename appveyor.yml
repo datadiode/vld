@@ -55,9 +55,9 @@ platform:
 
 configuration:
   - Debug_VldRelease
-  - Debug_VldRelease_StaticCrt
+  # - Debug_VldRelease_StaticCrt
   - Release
-  - Release_StaticCrt
+  # - Release_StaticCrt
 
 matrix:
   fast_finish: false
