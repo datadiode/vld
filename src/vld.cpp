@@ -866,19 +866,11 @@ VOID VisualLeakDetector::attachToLoadedModules (ModuleSet *newmodules)
             {
                 // This module does not import VLD. This means that none of the module's
                 // sources #included vld.h.
-                if ((m_options & VLD_OPT_MODULE_LIST_INCLUDE) != 0)
+                const BOOL match = PathMatchSpecW(modulename, m_forcedModuleList);
+                if ((m_options & VLD_OPT_MODULE_LIST_INCLUDE) != (match ? VLD_OPT_MODULE_LIST_INCLUDE : 0))
                 {
-                    if (wcsstr(m_forcedModuleList, modulename) == NULL) {
-                        // Exclude this module from leak detection.
-                        moduleFlags |= VLD_MODULE_EXCLUDED;
-                    }
-                }
-                else
-                {
-                    if (wcsstr(m_forcedModuleList, modulename) != NULL) {
-                        // Exclude this module from leak detection.
-                         moduleFlags |= VLD_MODULE_EXCLUDED;
-                    }
+                    // Exclude this module from leak detection.
+                    moduleFlags |= VLD_MODULE_EXCLUDED;
                 }
             }
         }

@@ -1,0 +1,3 @@
+[submodule "src/chronos"]
+	path = src/chronos
+	url = https://github.com/datadiode/chronos

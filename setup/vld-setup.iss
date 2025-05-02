@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Visual Leak Detector"
-#define MyAppVersion "2.8.0"
+#define MyAppVersion "2.8.1"
 #define MyAppPublisher "VLD Team"
 #define MyAppURL "https://github.com/oneiric/vld"
 #define MyAppRegKey "Software\Visual Leak Detector"
@@ -41,6 +41,9 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "{group}\View Documentation"; Filename: "http://vld.codeplex.com/documentation"
 
 [Files]
+Source: "..\x64\Release\chronos_x64.exe"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
+Source: "..\Release\chronos_x86.exe"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion
+Source: "..\src\chronos\LICENSE"; DestDir: "{app}"; DestName: "LICENSE_chronos.txt"; Flags: ignoreversion
 Source: "dbghelp\x64\dbghelp.dll"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "dbghelp\x64\Microsoft.DTfW.DHL.manifest"; DestDir: "{app}\bin\Win64"; Flags: ignoreversion
 Source: "dbghelp\x86\dbghelp.dll"; DestDir: "{app}\bin\Win32"; Flags: ignoreversion

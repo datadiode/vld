@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
-#include <windows.h>
+#include <shlwapi.h>
 #if _WIN32_WINNT < 0x0600 // Windows XP or earlier, no GetProcessIdOfThread()
 #include <winternl.h>
 #endif
