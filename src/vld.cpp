@@ -1350,6 +1350,7 @@ VOID VisualLeakDetector::mapBlock (HANDLE heap, LPCVOID mem, SIZE_T size, bool d
     blockinfo->reported = false;
     blockinfo->debugCrtAlloc = debugcrtalloc;
     blockinfo->ucrt = ucrt;
+    blockinfo->resource = IS_INTRESOURCE(heap);
 
     if (SIZE_MAX - m_totalAlloc > size)
         m_totalAlloc += size;
@@ -1672,6 +1673,9 @@ VOID VisualLeakDetector::reportConfig ()
 
 bool VisualLeakDetector::isDebugCrtAlloc( LPCVOID block, blockinfo_t* info )
 {
+    if (info->resource)
+        return false;
+
     // Autodetection allocations from statically linked CRT
     if (!info->debugCrtAlloc) {
         crtdbgblockheader_t* crtheader = (crtdbgblockheader_t*)block;
@@ -1908,7 +1912,7 @@ SIZE_T VisualLeakDetector::reportLeaks (heapinfo_t* heapinfo, bool &firstLeak, S
             info->callStack->dump(m_options & VLD_OPT_TRACE_INTERNAL_FRAMES);
 
         // Dump the data in the user data section of the memory block.
-        if (m_maxDataDump != 0) {
+        if (m_maxDataDump != 0 && size != 0) {
             Report(L"  Data:\n");
             if (m_options & VLD_OPT_UNICODE_REPORT) {
                 DumpMemoryW(address, (m_maxDataDump < size) ? m_maxDataDump : size);

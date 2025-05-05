@@ -42,6 +42,11 @@ extern HANDLE           g_currentProcess;
 extern CriticalSection  g_heapMapLock;
 extern DbgHelp g_DbgHelp;
 
+// Heap handles are pointers, hence disjunct from numbers below 65536, which
+// hence can serve as pseudo heap handles for tracking non-memory resources.
+#define VLD_SOCKET_RESOURCE                             MAKEINTRESOURCE(1)
+#define VLD_WSAEVENT_RESOURCE                           MAKEINTRESOURCE(2)
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Debug CRT and MFC IAT Replacement Functions
@@ -296,6 +301,171 @@ LPVOID VisualLeakDetector::_HeapReAlloc (HANDLE heap, DWORD flags, LPVOID mem, S
     }
 
     return newmem;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Winsock IAT Replacement Functions
+//
+////////////////////////////////////////////////////////////////////////////////
+
+// _socket - Calls to socket are patched through to this function.
+//   This function invokes the real socket and then calls VLD's allocation
+//   tracking function with a pseudo heap handle of value VLD_SOCKET_RESOURCE.
+//
+//  Return Value:
+//
+//    Returns the return value from socket.
+//
+SOCKET VisualLeakDetector::_socket (int af, int type, int protocol)
+{
+    PRINT_HOOKED_FUNCTION2();
+    // Allocate the resource.
+    SOCKET s = socket(af, type, protocol);
+
+    if ((s == INVALID_SOCKET) || !g_vld.enabled())
+        return s;
+
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    {
+        CAPTURE_CONTEXT();
+        CaptureContext cc(socket, context_);
+        cc.Set(VLD_SOCKET_RESOURCE, reinterpret_cast<LPVOID>(s), NULL, 0);
+    }
+
+    return s;
+}
+
+// _accept - Calls to accept are patched through to this function.
+//   This function invokes the real accept and then calls VLD's allocation
+//   tracking function with a pseudo heap handle of value VLD_SOCKET_RESOURCE.
+//
+//  Return Value:
+//
+//    Returns the return value from accept.
+//
+SOCKET VisualLeakDetector::_accept (SOCKET s, struct sockaddr *addr, int *addrlen)
+{
+    PRINT_HOOKED_FUNCTION2();
+    // Allocate the resource.
+    s = accept(s, addr, addrlen);
+
+    if ((s == INVALID_SOCKET) || !g_vld.enabled())
+        return s;
+
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    {
+        CAPTURE_CONTEXT();
+        CaptureContext cc(accept, context_);
+        cc.Set(VLD_SOCKET_RESOURCE, reinterpret_cast<LPVOID>(s), NULL, 0);
+    }
+
+    return s;
+}
+
+// _connect - Calls to connect are patched through to this function.
+//   This function invokes the real connect and then calls VLD's allocation
+//   tracking function with a pseudo heap handle of value VLD_SOCKET_RESOURCE.
+//
+//  Return Value:
+//
+//    Returns the return value from connect.
+//
+SOCKET VisualLeakDetector::_connect (SOCKET s, const struct sockaddr *name, int namelen)
+{
+    PRINT_HOOKED_FUNCTION2();
+    // Allocate the resource.
+    s = connect(s, name, namelen);
+
+    if ((s == INVALID_SOCKET) || !g_vld.enabled())
+        return s;
+
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    {
+        CAPTURE_CONTEXT();
+        CaptureContext cc(connect, context_);
+        cc.Set(VLD_SOCKET_RESOURCE, reinterpret_cast<LPVOID>(s), NULL, 0);
+    }
+
+    return s;
+}
+
+// _closesocket - Calls to closesocket are patched through to this function.
+//   This function calls VLD's free tracking function with a pseudo heap handle
+//   of value VLD_SOCKET_RESOURCE and then invokes the real closesocket.
+//
+//  Return Value:
+//
+//    Returns the value returned by closesocket.
+//
+int VisualLeakDetector::_closesocket (SOCKET s)
+{
+    PRINT_HOOKED_FUNCTION2();
+
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    {
+        // Record the current frame pointer.
+        CAPTURE_CONTEXT();
+        context_.func = reinterpret_cast<UINT_PTR>(closesocket);
+
+        // Unmap the resource from the specified pseudo heap.
+        g_vld.unmapBlock(VLD_SOCKET_RESOURCE, reinterpret_cast<LPVOID>(s), context_);
+    }
+
+    return closesocket(s);
+}
+
+// _WSACreateEvent - Calls to WSACreateEvent are patched through to this
+//   function. This function invokes the real WSACreateEvent and then calls
+//   VLD's allocation tracking function with a pseudo heap handle of value
+//   VLD_HANDLE_RESOURCE.
+//
+//  Return Value:
+//
+//    Returns the return value from WSACreateEvent.
+//
+WSAEVENT VisualLeakDetector::_WSACreateEvent ()
+{
+    PRINT_HOOKED_FUNCTION2();
+    // Allocate the resource.
+    WSAEVENT hEvent = WSACreateEvent();
+
+    if ((hEvent == WSA_INVALID_EVENT) || !g_vld.enabled())
+        return hEvent;
+
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    {
+        CAPTURE_CONTEXT();
+        CaptureContext cc(WSACreateEvent, context_);
+        cc.Set(VLD_WSAEVENT_RESOURCE, hEvent, NULL, 0);
+    }
+
+    return hEvent;
+}
+
+// _WSACloseEvent - Calls to WSACloseEvent are patched through to this function.
+//   This function calls VLD's free tracking function with a pseudo heap handle
+//   of value VLD_HANDLE_RESOURCE and then invokes the real WSACloseEvent.
+//
+//  Return Value:
+//
+//    Returns the value returned by closesocket.
+//
+BOOL VisualLeakDetector::_WSACloseEvent (WSAEVENT hEvent)
+{
+    PRINT_HOOKED_FUNCTION2();
+
+    if (!g_DbgHelp.IsLockedByCurrentThread()) // skip dbghelp.dll calls
+    {
+        // Record the current frame pointer.
+        CAPTURE_CONTEXT();
+        context_.func = reinterpret_cast<UINT_PTR>(WSACloseEvent);
+
+        // Unmap the resource from the specified pseudo heap.
+        g_vld.unmapBlock(VLD_WSAEVENT_RESOURCE, hEvent, context_);
+    }
+
+    return WSACloseEvent(hEvent);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

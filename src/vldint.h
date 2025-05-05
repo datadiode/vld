@@ -111,6 +111,7 @@ struct blockinfo_t {
     bool       reported;
     bool       debugCrtAlloc;
     bool       ucrt;
+    bool       resource;
 };
 
 // BlockMaps map memory blocks (via their addresses) to blockinfo_t structures.
@@ -353,6 +354,14 @@ private:
     static BYTE     __stdcall _RtlFreeHeap (HANDLE heap, DWORD flags, LPVOID mem);
     static LPVOID   __stdcall _RtlReAllocateHeap (HANDLE heap, DWORD flags, LPVOID mem, SIZE_T size);
 
+    // Winsock IAT replacement functions
+    static SOCKET   __stdcall _socket (int af, int type, int protocol);
+    static SOCKET   __stdcall _accept (SOCKET s, struct sockaddr *addr, int *addrlen);
+    static SOCKET   __stdcall _connect (SOCKET s, const struct sockaddr *name, int namelen);
+    static int      __stdcall _closesocket (SOCKET s);
+    static WSAEVENT __stdcall _WSACreateEvent ();
+    static BOOL     __stdcall _WSACloseEvent (WSAEVENT hEvent);
+
     // COM IAT replacement functions
     static HRESULT __stdcall _CoGetMalloc (DWORD context, LPMALLOC *imalloc);
     static LPVOID  __stdcall _CoTaskMemAlloc (SIZE_T size);
@@ -379,8 +388,9 @@ private:
     static patchentry_t  m_kernelbasePatch [];
     static patchentry_t  m_kernel32Patch [];
     static patchentry_t  m_ntdllPatch [];
+    static patchentry_t  m_winsockPatch [];
     static patchentry_t  m_ole32Patch [];
-    static moduleentry_t m_patchTable [58];   // Table of imports patched for attaching VLD to other modules.
+    static moduleentry_t m_patchTable [59];   // Table of imports patched for attaching VLD to other modules.
     FILE                *m_reportFile;        // File where the memory leak report may be sent to.
     WCHAR                m_reportFilePath [MAX_PATH]; // Full path and name of file to send memory leak report to.
     const char          *m_selfTestFile;      // Filename where the memory leak self-test block is leaked.

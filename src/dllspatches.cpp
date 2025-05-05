@@ -769,6 +769,16 @@ patchentry_t VisualLeakDetector::m_ntdllPatch [] = {
     NULL,                 NULL, NULL
 };
 
+patchentry_t VisualLeakDetector::m_winsockPatch [] = {
+    "socket",             NULL, _socket,
+    "accept",             NULL, _accept,
+    "connect",            NULL, _connect,
+    "closesocket",        NULL, _closesocket,
+    "WSACreateEvent",     NULL, _WSACreateEvent,
+    "WSACloseEvent",      NULL, _WSACloseEvent,
+    NULL,                 NULL, NULL
+};
+
 patchentry_t VisualLeakDetector::m_ole32Patch [] = {
     "CoGetMalloc",        NULL, _CoGetMalloc,
     "CoTaskMemAlloc",     NULL, _CoTaskMemAlloc,
@@ -841,6 +851,9 @@ moduleentry_t VisualLeakDetector::m_patchTable [] = {
 
     // NT APIs.
     "ntdll.dll",    FALSE,  0x0, m_ntdllPatch,
+
+    // Winsock APIs.
+    "ws2_32.dll",   FALSE,  0x0, m_winsockPatch,
 
     // COM heap APIs.
     "ole32.dll",    FALSE,  0x0, m_ole32Patch
